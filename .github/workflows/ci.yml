@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run unit and e2e tests
+        run: go test -race -v ./...
+
+      - name: Validate compose configuration
+        run: docker compose config -q
+
+      - name: Build and smoke-test Docker image
+        run: |
+          docker build -t nvirellia-im:ci .
+          docker run -d --name nvirellia-im-smoke --read-only --cap-drop ALL -p 127.0.0.1:18080:8080 nvirellia-im:ci
+          trap 'docker rm -f nvirellia-im-smoke' EXIT
+          for _ in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:18080/healthz | grep -qx ok; then
+              curl -fsS http://127.0.0.1:18080/ | grep -q 'id="profile"'
+              exit 0
+            fi
+            sleep 0.5
+          done
+          docker logs nvirellia-im-smoke
+          exit 1

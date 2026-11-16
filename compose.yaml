@@ -1,0 +1,24 @@
+services:
+  nvirellia-im:
+    build: .
+    container_name: nvirellia-im
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORT:-8080}:8080"
+    environment:
+      LISTEN_ADDR: ":8080"
+      FEED_TTL: ${FEED_TTL:-30s}
+      MAGPIE_URL: ${MAGPIE_URL:-}
+      MAGPIE_WEB_KEY: ${MAGPIE_WEB_KEY:-}
+      GATUS_URL: ${GATUS_URL:-}
+      PROMETHEUS_URL: ${PROMETHEUS_URL:-}
+      PROMETHEUS_JOB: ${PROMETHEUS_JOB:-node}
+      FLAKE_REPO: ${FLAKE_REPO:-pelikanade/flake}
+      GITHUB_API_URL: ${GITHUB_API_URL:-https://api.github.com}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
